@@ -30,3 +30,5 @@ Note that the `echo = FALSE` parameter was added to the code chunk to prevent pr
 
 
 looking to add this to github
+
+looking now at saving the doc
