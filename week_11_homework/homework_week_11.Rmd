@@ -1,0 +1,235 @@
+---
+title: "Homework Week 11"
+author: Conor Craig
+output:
+  pdf_document:
+    latex_engine: xelatex
+Header-includes:
+  - \usepackage{hyperref}
+  - \usepackage {float}
+biblio-style: apsr
+geometry: margin=1in
+fontfamily: mathpazo
+fontsize: 12pt
+spacing: double
+endnote: no
+date: "2023-11-14"
+---
+
+```{r, echo=FALSE, inclue=FALSE, warning=FALSE, message=FALSE}
+# Libraries and Data
+library(readr)
+library(tidyverse)
+library(effects)
+world <- read_csv("world.csv")
+```
+
+```{r, echo=FALSE, inclue=FALSE, warning=FALSE, message=FALSE, eval=FALSE}
+files_in_directory <- list.files()
+files_in_directory
+
+# Check if the dataset file is in the working directory
+if ("world.csv" %in% files_in_directory) {
+  print("The dataset is in the working directory.")
+} else {
+  print("The dataset is not in the working directory.")
+}
+```
+
+# Question 1
+Estimate a constant-only model
+
+```{r}
+women09 <- world$women09
+women09_no_na <- na.omit (women09)
+model_1 <- lm(women09 ~ 1)
+summary (model_1)
+```
+
+# Question 2 
+Per capita GDP (gdp_10_thou) as the main independent variable.
+
+```{r}
+gdp_10_thou <- world$gdp_10_thou
+new_world <- data.frame (women09 = women09, gdp_10_thou = gdp_10_thou)
+no_na_data <- na.omit(new_world)
+regress_1 <- lm(women09 ~ gdp_10_thou, data = no_na_data)
+summary(regress_1)
+```
+
+# Question 3
+Graph  estimated effect of per capita on female representation 
+
+```{r}
+effect_plot_1 <- effect(term = "gdp_10_thou", mod = regress_1)
+plot (effect_plot_1, 
+main = "Effect of Proportional Economic Growth on Female Representation", 
+xlab = "GDP per Capita",
+ylab = "Female Representation")
+```
+
+
+# Question 4
+Estimate electoral system as the main independent variable.
+
+```{r}
+new_world $ pr_sys <- ifelse(world$pr_sys == "Yes", 1, 0)
+
+no_na_data_2 <- na.omit(new_world)
+no_na_data_2$pr_sys <- as.factor(no_na_data_2$pr_sys)
+regress_pr_sys <- lm(women09 ~ pr_sys, data = no_na_data_2)
+summary (regress_pr_sys)
+```
+
+# Question 5
+Graph of estimated effect of electoral system on female representation
+
+```{r}
+effect_plot_1 <- effect(term = "pr_sys", mod = regress_pr_sys)
+plot (effect_plot_1, 
+main = "Effect of PR system on Female Representation", 
+xlab = "Electoral System",
+ylab = "Female Representation")
+```
+
+
+# Question 6
+regression of per capita GDP and electoral system
+
+```{r}
+regress_2 <- lm(women09 ~ pr_sys + gdp_10_thou, data = no_na_data_2)
+summary (regress_2)
+```
+
+# Quetion 7
+Which is the best model of the four above?
+
+```{r, echo=FALSE, eval=FALSE}
+summary (model_1)
+summary(regress_1)
+summary(regress_pr_sys)
+summary(regress_2)
+
+# The final model that uses both Pr system and GDP per capita is the best
+# It reports the highest R-squared at 0.2067 and the lowest Residual 
+# standard error at 9.7; indicating that this model has the most explanatory
+# power of the three while also having the lowest errors from the predicted
+# line. 
+```
+
+
+# Question 8
+Graph of per capita GDP on female representation when considering PR systems 
+
+```{r}
+effect_plot_2 <- effect(term = "gdp_10_thou", mod = regress_2, 
+                        given.value = list(pr_sys = 1))
+plot (effect_plot_2, 
+main = "Effect of GDP on Female Representation in PR systems", 
+xlab = "GDP Per Captia",
+ylab = "Female Representation")
+```
+
+
+# Question 9
+Try creating the same graph by providing "gdp_10_thou:pr_sys" as the term.
+
+```{r}
+regress_3 <- lm(women09 ~ gdp_10_thou:pr_sys, data = no_na_data_2)
+effect_plot_3 <- effect(term = "gdp_10_thou:pr_sys", mod = regress_3) 
+
+plot (effect_plot_3, 
+main = "GDP Per Captia's Effect on Female Representation Given if PR system", 
+xlab = "GDP Per Capita",
+ylab = "Female Representation")
+```
+
+
+# Question 10
+Regression of region on female representation  
+
+```{r}
+new_world $ region <- world$region
+no_na_data_3 <- na.omit (new_world)
+
+region_regress <- lm(women09 ~ region, data = no_na_data_3)
+summary (region_regress)
+```
+
+# Question 11
+Graph of region on female representation. 
+
+```{r, warning=FALSE, message=FALSE}
+library(ggeffects)
+test_plot <- ggpredict(region_regress, terms = "region")
+regional_plot <- plot(test_plot)+
+  labs (title = "Female Representation Across Regions", 
+        x = "Regions", 
+        y = "Female Representation Across Regions") +
+  theme_minimal() +
+  theme (plot.title = element_text(hjust = 0.5, face = "bold"))
+regional_plot
+```
+
+```{r, echo=FALSE, inclue=FALSE, warning=FALSE, message=FALSE, eval=FALSE}
+effect_plot_4 <- effect(term = "region", mod = region_regress)
+plot (effect_plot_4, 
+main = "Female Representation Across Regions",
+ylab = "Female Representation",
+xlab = "Regions",
+las = 2)
+
+plot <- ggplot(no_na_data_3, aes(x = region, y = women09)) +
+  geom_point() +
+  geom_smooth (method = "lm", se = TRUE, color = "blue") +
+  labs(title = "Female Representation Across Regions",
+       x = "Regions",
+       y = "Female Representation Across Regions") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+plot
+```
+
+
+# Question 12
+Regression model of female representation on per cpaita GDP that controls 
+for region
+
+```{r}
+region_regress_2 <- lm(women09 ~ gdp_10_thou + region, data = no_na_data_3)
+summary (region_regress_2)
+
+# GDP per capita does not appear to be an important determinat of female
+# representation. When controlling for region, the variable is not
+# statistically significant; indicating, we can't determine if the effect
+# is different from zero
+```
+
+# Question 13. 
+Regression model of female representation on frac_eth3
+
+```{r}
+new_world $ frac_eth3 <- world$frac_eth3
+new_world $ frac_high <- ifelse(world$frac_eth3 == "High", 1, 0)
+new_world $ frac_mid <- ifelse(world$frac_eth3 == "Medium", 1, 0)
+new_world $ frac_low <- ifelse(world$frac_eth3 == "Low", 1, 0)
+
+no_na_data_4 <- na.omit (new_world)
+
+eth_frac_regress <- lm(women09 ~ frac_mid + frac_high, data = no_na_data_4)
+summary (eth_frac_regress)
+```
+
+# Question 14. 
+Do you think ethnic fractionalization has an impact on female representation? 
+
+```{r}
+# The results indicate that no, ethnic fractionalization has no effect on
+# female representation. A substantive effect is reported, but it is impossible
+# to tell if this actually differs from zero or not (that is, the findings
+# lack statistical significance)
+
+# This determination was made from the summary of the regression model above. 
+# Summary code not shown in this code chunk. 
+```
+
+
